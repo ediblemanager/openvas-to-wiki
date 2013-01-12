@@ -16,3 +16,8 @@ tmp
 .yardoc
 _yardoc
 doc/
+
+# Local folders
+kismet/wiki_files
+kismet/html_files
+processed_files
