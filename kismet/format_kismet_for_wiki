@@ -1,0 +1,82 @@
+#!/bin/bash
+
+# This script will grab the files that will be created after a scan,
+# process then to MediaWiki format and then strip out html markup that
+# breaks the formatting when viewing on the wiki.
+# Also takes name of the file as the name for the individual reports.
+
+# NAMING CONVENTION FOR FILES: machine-name/item-name.
+# Instead of spaces(!), use hyphens in the name of the scan target.
+# The script searches for the first underscore and takes everything
+# before it as the scan target, adding in the name to the Summary section
+# in the report.
+
+
+# Creation date: 9th September 2011
+# Amended 26th September 2011
+# Author: Gordon Thomson
+# Version 1.0
+
+# Fixes:
+# 4/10/2011 - formatting was askew in the wiki file - sub headers were given the same prominence as
+# the main header per scan target. Script now gives correct prominence to sub headers.
+
+# get the passed in directory - location of files to be processed
+directory=$1
+# and the current directory
+current_dir=$2
+# grab the date
+date_run=`date +%d_%m_%Y`
+# create the files
+touch $date_run"_scans.html"
+
+for files in `find $directory -type f`
+do
+    if [ "$(file -b $files | grep 'HTML document')" ];
+    then
+        # take a copy of the file for editing.
+        cp $files $files".temp"
+        # remove top two lines - html doc declaration
+        sed -i '1,2d' $files".temp"
+        # echo "<div align='center'>This scan ran for approximately 30 minutes.</div>" >> $files".temp"
+        # remove unnecessary tags
+        $current_dir"/remove_tags" $files".temp" >> $date_run"_scans.html"
+        echo $files" has been processed."
+        rm $files".temp"
+        continue
+    elif [ "$(file -b $files | grep 'ASCII English text, with very long lines')" ];
+    then
+        continue
+    else
+        continue
+    fi
+done
+echo "Converting to MediaWiki format..."
+html2wiki --strip-tags --dialect MediaWiki --no-wrap-in-html --no-escape-entities $date_run"_scans.html" > $date_run".wiki"
+echo "Correcting indentation structure..."
+sed -i 's/=Results per Host=/==Results per Host==/g' $date_run".wiki"
+
+# delete lines 3-6 (unnecessary header lines)
+sed -i '3,6d' $date_run".wiki"
+
+# Delete the unnecessary br tags at end of file
+length=`wc -l $date_run".wiki" | awk '{print $1}'`
+echo "Length "$length
+to_trim=`expr $length - 2`
+echo "To Trim "$to_trim
+`head -$to_trim $date_run".wiki" >> $date_run".wiki.temp"`
+# Copy back to original file
+mv $date_run".wiki.temp" $date_run".wiki"
+# Duration of scan
+echo "<br /><div align='center'>This scan ran for approximately 30 minutes.</div>" >> $date_run".wiki"
+
+# find and replace the conversion script author's name so that it is centered.
+sed -i 's&Kismet Log Viewer 1.0 - By Brian Foy Jr.&<center>Kismet Log Viewer 1.0 - By Brian Foy Jr.</center>&g' $date_run".wiki"
+
+# find and replace the blank column for SSID with N/A
+sed -i 's&<div><center></center></div>&<div><center>N/A</center></div>&g' $date_run".wiki"
+echo "Done."
+
+# move the created wiki file to the proper location
+mv $date_run".wiki" $current_dir"/wiki_files/"$date_run".wiki"
+rm $date_run"_scans.html"

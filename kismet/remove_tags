@@ -1,0 +1,24 @@
+#!/usr/bin/env php
+<?php
+  // Get file
+  $myFile = $argv[1];
+  $fh = fopen($myFile, 'r');
+
+  // Set variables
+  $valid_lines  = array();
+  $currentline  = "";
+  $outputindex  = 0;
+
+  // loop looking for good lines
+  while($theData = fgets($fh)) {
+    $currentline = strip_tags($theData,"<html><meta><body><table><tr><td><div><br>")."\n";
+    $valid_lines[$outputindex] = " " . $currentline;
+    $outputindex++;
+  }
+
+  foreach ($valid_lines AS $a_line) {
+    echo $a_line . "\n";
+  }
+
+  fclose($fh);
+?>

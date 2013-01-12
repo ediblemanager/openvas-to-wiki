@@ -1,0 +1,78 @@
+#!/bin/bash
+
+# This script will grab the files that will be created after a scan,
+# process then to MediaWiki format and then strip out html markup that
+# breaks the formatting when viewing on the wiki.
+# Also takes name of the file as the name for the individual reports.
+
+# NAMING CONVENTION FOR FILES: machine-name/item-name.
+# Instead of spaces(!), use hyphens in the name of the scan target.
+# The script searches for the first underscore and takes everything
+# before it as the scan target, adding in the name to the Summary section
+# in the report.
+
+
+# Creation date: 9th September 2011
+# Amended 26th September 2011
+# Author: Gordon Thomson
+# Version 1.0
+
+# Fixes:
+# 4/10/2011 - formatting was askew in the wiki file - sub headers were given the same prominence as
+# the main header per scan target. Script now gives correct prominence to sub headers.
+
+# get the passed in directory
+directory=$1
+# and the current directory
+current_dir=$2
+# grab the date
+date_run=`date +%d_%m_%Y`
+year=`date +%Y`
+month=`date +%B`
+# create the files
+touch /tmp/$date_run".html"
+# touch /tmp/$date_run".wiki"
+echo -e "\n"
+for files in `find $directory -maxdepth 2 -mindepth 1 -type f`
+do
+    if [ "$(file -b $files | grep 'HTML document')" ];
+    then
+        # grab the first section of the filename (everything before the '_')
+        filename=$(basename "$files")
+        # this would get the extension. Not sure if it copes with .tar.gz though.
+        extension=${filename# # *.}
+        file_name_ext=${filename%.*}.$extension
+        name_of_file=$(echo $file_name_ext | cut -d'_' -f1)
+        # create a temp file to avoid overwriting the original
+        cat $files > $files.temp
+        # remove top nine lines (including the <h1>Summary</h1> part)
+        sed -i '1,8d' $files.temp
+        # remove two bottom lines (and spaces between)
+        head -n -5 $files.temp > $files.temp2
+        # replace the summary part, including the filename
+        sed -i -e '1c \<h1>Summary for '$name_of_file'</h1>' $files.temp2
+        # Also need to cater for every other machine/item scanned, the above replaces only the first.
+        # sed -i 's/">Host/">Host '$name_of_file'-/g' $files
+        # Put the temp file into the overall HTML file
+        cat $files.temp2 >> /tmp/$date_run".html"
+        # Couple of line breaks to separate content.
+        echo '<br /><br />' >> /tmp/$date_run".html"
+        echo $files" has been processed."
+        # Clean up
+        rm $files.temp
+        rm $files.temp2
+        continue
+    elif [ "$(file -b $files | grep 'ASCII English text, with very long lines')" ];
+    then
+        continue
+    else
+        continue
+    fi
+done
+echo "Converting to MediaWiki format..."
+html2wiki --strip-tags --dialect MediaWiki --no-wrap-in-html --no-escape-entities /tmp/$date_run".html" > /tmp/$date_run".wiki"
+echo "Correcting indentation structure..."
+sed -i 's/=Results per Host=/==Results per Host==/g' /tmp/$date_run".wiki"
+echo "Done."
+mv /tmp/$date_run".wiki" $current_dir"/processed_files/$year/$month/$date_run".wiki"
+rm /tmp/$date_run".html"
