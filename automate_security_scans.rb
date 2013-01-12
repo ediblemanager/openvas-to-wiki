@@ -24,7 +24,7 @@ class Automate
   require 'active_record'
   include FileUtils
 
-	def initialize
+  def initialize
     ARGV.map! &:downcase
     if ARGV.include?("openvas")
       get_openvas_data
