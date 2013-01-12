@@ -168,11 +168,11 @@ class Automate
       @remove_from_target_array_2 = "#{@current_dir}/target_array_2/#{@date_location}"
       # If the base output file path exists
       if !File.exists?(@output_file_path) #&& File.directory?(@output_file_path)
-        `mkdir -p #{@output_file_path}`
+        FileUtils.mkdir_p "#{@output_file_path}"
       end
 
       if !File.exists?("#{@current_dir}/processed_files/#{@network_location}/#{@date_location}") #&& File.directory?(@output_file_path)
-        `mkdir -p #{@current_dir}/processed_files/#{@network_location}/#{@date_location}`
+        FileUtils.mkdir_p "#{@current_dir}/processed_files/#{@network_location}/#{@date_location}"
       end
       # This is where we are grabbing the scan results
       `omp --get-report #{value} --format #{@html_id} > #{@output_file_path}/#{key}_#{@scan_date}.html`
@@ -201,12 +201,13 @@ class Automate
       puts "  "
       puts "/**************** Processing to MediaWiki format - Target array 1 ****************/"
       puts `./format_report_for_wiki target_array_1/#{@date_location} #{@current_dir}`
-      `mv /tmp/#{today}_#{month}_#{year}.wiki #{@current_dir}/processed_files/target_array_1/#{@date_location}/#{@wiki_name}.wiki`
+      FileUtils.mv "/tmp/#{today}_#{month}_#{year}.wiki" "#{@current_dir}/processed_files/target_array_1/#{@date_location}/#{@wiki_name}.wiki"
 
       puts "  "
       puts "/**************** Processing to MediaWiki format - Target array 2 ****************/"
       puts `./format_report_for_wiki target_array_2/#{@date_location} #{@current_dir}`
-      `mv /tmp/#{today}_#{month}_#{year}.wiki #{@current_dir}/processed_files/target_array_2/#{@date_location}/#{@wiki_name}.wiki`
+
+      FileUtils.mv "/tmp/#{today}_#{month}_#{year}.wiki" "#{@current_dir}/processed_files/target_array_2/#{@date_location}/#{@wiki_name}.wiki"
       `find  #{@current_dir}/processed_files/target_array_2/#{@date_location} -maxdepth 1 -type f -name "*.wiki" -exec sed -i '/if IE 6/d' {} \\;`
       `find  #{@current_dir}/processed_files/target_array_1/#{@date_location} -maxdepth 1 -type f -name "*.wiki" -exec sed -i '/if IE 6/d' {} \\;`
       # Update the usable nvt's (scan algorithms)
@@ -251,15 +252,15 @@ class Automate
     puts "kismet file name: #{@kismet_file_name}"
 
     # Make the correct directories
-    `mkdir -p #{kismet_folder}html_files/#{year}/#{month_number}/#{day}/main_html_file`
-    `mkdir -p #{kismet_folder}html_files/#{year}/#{month_number}/#{day}/xml_file`
+    FileUtils.mkdir_p "#{kismet_folder}html_files/#{year}/#{month_number}/#{day}/main_html_file"
+    FileUtils.mkdir_p "#{kismet_folder}html_files/#{year}/#{month_number}/#{day}/xml_file"
     # Move the xml file to the html_files/month/day/xml_file directory.
-    puts "mv #{@kismet_file_name} #{kismet_folder}html_files/#{year}/#{month_number}/#{day}/xml_file/Kismet_#{day}_#{month_number}_#{year}.netxml"
-    `mv #{@kismet_file_name} #{kismet_folder}html_files/#{year}/#{month_number}/#{day}/xml_file/Kismet_#{day}_#{month_number}_#{year}.netxml`
+    puts "Move #{@kismet_file_name} to #{kismet_folder}html_files/#{year}/#{month_number}/#{day}/xml_file/Kismet_#{day}_#{month_number}_#{year}.netxml"
+    FileUtils.mv "#{@kismet_file_name}" "#{kismet_folder}html_files/#{year}/#{month_number}/#{day}/xml_file/Kismet_#{day}_#{month_number}_#{year}.netxml"
     # Update kismet xml output file name
     @kismet_file_name = "#{kismet_folder}html_files/#{year}/#{month_number}/#{day}/xml_file/Kismet_#{day}_#{month_number}_#{year}.netxml"
     # Get rid of other Kismet output files - don't need them (only XML file is processed).
-    `rm #{kismet_folder}Kismet* `
+    FileUtils.rm "#{kismet_folder}Kismet*"
     # Now need to call the processing script, which will create a whole bunch of files: we however, are only interested
     # in the main html file, which we will grab, store, and then wiki-fy.
     run_script = "#{kismet_folder}klv.pl #{@kismet_file_name}"
@@ -271,17 +272,17 @@ class Automate
     # Get rid of unnecessary log files
     # Run the wiki processing script on the kismet file.
     # Move the html file ready for processing by the HTML2Wiki script.
-    `mv #{kismet_folder}html_files/#{year}/#{month_number}/#{day}/xml_file/Kismet_#{day}_#{month_number}_#{year}.netxml.html #{kismet_folder}html_files/#{year}/#{month_number}/#{day}/main_html_file/Kismet_#{day}_#{month_number}_#{year}.netxml.html`
+    FileUtils.mv "#{kismet_folder}html_files/#{year}/#{month_number}/#{day}/xml_file/Kismet_#{day}_#{month_number}_#{year}.netxml.html" "#{kismet_folder}html_files/#{year}/#{month_number}/#{day}/main_html_file/Kismet_#{day}_#{month_number}_#{year}.netxml.html"
     # Remove the unecessary clients/info html files, grab html file name for processing.
-    `rm #{kismet_folder}html_files/#{year}/#{month_number}/#{day}/xml_file/Kismet_#{day}_#{month_number}_#{year}.netxml-*`
+    FileUtils.rm "#{kismet_folder}html_files/#{year}/#{month_number}/#{day}/xml_file/Kismet_#{day}_#{month_number}_#{year}.netxml-*"
     @kismet_html_file_name = "#{kismet_folder}html_files/#{year}/#{month_number}/#{day}/main_html_file/Kismet_#{day}_#{month_number}_#{year}.netxml.html"
     puts "Kismet file name: #{@kismet_html_file_name}"
     # Run the wiki script.
     wiki_script = "#{kismet_folder}format_kismet_for_wiki #{@kismet_html_file_name} #{kismet_folder}"
     puts "Kismet Processing script: #{wiki_script}"
     system(wiki_script)
-    `mkdir -p #{kismet_folder}wiki_files/#{year}/#{month_number}/`
-    `mv #{kismet_folder}wiki_files/#{day}_#{month_number}_#{year}.wiki #{kismet_folder}wiki_files/#{year}/#{month_number}/#{day}_#{month_number}_#{year}.wiki`
+    FileUtils.mkdir_p "#{kismet_folder}wiki_files/#{year}/#{month_number}/"
+    FileUtils.mv "#{kismet_folder}wiki_files/#{day}_#{month_number}_#{year}.wiki #{kismet_folder}wiki_files/#{year}/#{month_number}/#{day}_#{month_number}_#{year}.wiki"
 	end
 end
 
