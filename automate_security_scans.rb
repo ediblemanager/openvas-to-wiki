@@ -60,12 +60,12 @@ class Automate
 
   def get_openvas_data
     @list_targets = `omp -G`
-		@target_ids = Array.new
-		@output_html_name = Array.new
-		@reports_list = Array.new
+    @target_ids = Array.new
+    @output_html_name = Array.new
+    @reports_list = Array.new
     @user_date = ""
-		# id for HTML output - this will vary between installations. In future release automatically picked up.
-		@html_id = "b993b6f5-f9fb-4e6e-9c94-dd46c00e058d"
+    # id for HTML output - this will vary between installations. In future release automatically picked up.
+    @html_id = "b993b6f5-f9fb-4e6e-9c94-dd46c00e058d"
 
     # Get directory for this script
     @current_dir = Dir.pwd.strip
@@ -77,23 +77,23 @@ class Automate
     @day = Chronic.parse("last Saturday").strftime("%d").to_i
     @scan_date = "#{@day}_#{@month}_#{@year}"
 
-		# Create an array/s for the targets specified in OMP - this must match the output from omp
-		@target_array_1 = []
-		@target_array_2 = []
+    # Create an array/s for the targets specified in OMP - this must match the output from omp
+    @target_array_1 = []
+    @target_array_2 = []
   end
 
-	def get_targets_and_names
-		# Go through the data gathered, strip out the ids and the names.
+  def get_targets_and_names
+    # Go through the data gathered, strip out the ids and the names.
     @targets = @list_targets.split("\n").collect! {|n| n.split("\t")}
-		@targets.each do |element|
+    @targets.each do |element|
       # This will give me the first target's details as an array
       target_details = element.first.split
       # Now that we have the target's details, grab the id
-			@target_ids << target_details.first
-			# name formatted for html file name use.
-			@output_html_name << target_details.last.to_s# + (split_element[4] ? "-" + split_element[4].to_s : "")
-		end
-	end
+      @target_ids << target_details.first
+      # name formatted for html file name use.
+      @output_html_name << target_details.last.to_s# + (split_element[4] ? "-" + split_element[4].to_s : "")
+    end
+  end
 
   def get_individual_scans
     # Iterate through the scan targets, and grab the data about the scan:
@@ -152,20 +152,22 @@ class Automate
     end
   end
 
-	def return_scan_results
-		i = 0
-		@gathered_reports.each_pair do |key, value|
-			# Set up network location for html file output
+  def return_scan_results
+    i = 0
+    @gathered_reports.each_pair do |key, value|
+      # Set up network location for html file output
       if @target_array_1.include?(key)
         @network_location = "target_array_1"
-			end
-			if @target_array_2.include?(key)
+      end
+      if @target_array_2.include?(key)
         @network_location = "target_array_2"
-			end
+      end
       @output_file_path = "#{@current_dir}/#{@network_location}/#{@date_location}"
+
       # Create vars to hold paths for the removal of bad characters.
       @remove_from_target_array_1 = "#{@current_dir}/target_array_1/#{@date_location}"
       @remove_from_target_array_2 = "#{@current_dir}/target_array_2/#{@date_location}"
+
       # If the base output file path exists
       if !File.exists?(@output_file_path) #&& File.directory?(@output_file_path)
         FileUtils.mkdir_p "#{@output_file_path}"
@@ -190,10 +192,10 @@ class Automate
     `sed -i ':a;N;$!ba;s@↵\\n@@g' *.html`
     Dir.chdir "#{@current_dir}"
     puts " "
-	end
+  end
 
-	def process_scan_results
-		# In here we'll run the processing script on the results, gathering wiki output.
+  def process_scan_results
+    # In here we'll run the processing script on the results, gathering wiki output.
       today = Chronic.parse("today").strftime("%d")
       month = Chronic.parse("today").strftime("%m")
       year =  Chronic.parse("today").strftime("%Y")
@@ -212,7 +214,7 @@ class Automate
       `find  #{@current_dir}/processed_files/target_array_1/#{@date_location} -maxdepth 1 -type f -name "*.wiki" -exec sed -i '/if IE 6/d' {} \\;`
       # Update the usable nvt's (scan algorithms)
       `sudo openvas-nvt-sync --wget`
-	end
+  end
 
   def run_kismet
     @current_dir = Dir.pwd.strip
@@ -235,7 +237,7 @@ class Automate
     sleep(30)
   end
 
-	def get_kismet_results
+  def get_kismet_results
     # Kismet puts its results from the current directory.
     # I try to run it from the location of the processing script.
     # The file that's needed for processing is the xml one, filename similar to this: Kismet-20111125-15-28-27-1.netxml
@@ -283,7 +285,7 @@ class Automate
     system(wiki_script)
     FileUtils.mkdir_p "#{kismet_folder}wiki_files/#{year}/#{month_number}/"
     FileUtils.mv "#{kismet_folder}wiki_files/#{day}_#{month_number}_#{year}.wiki #{kismet_folder}wiki_files/#{year}/#{month_number}/#{day}_#{month_number}_#{year}.wiki"
-	end
+  end
 end
 
 automation = Automate.new
