@@ -37,7 +37,7 @@ class Automate
       run_kismet
       get_kismet_results
     end
-	end
+  end
 
   def get_user_date
     puts "Scans are run on <insert day>. Please enter a date you want to retrieve scans for (dd/mm/yyyy), or hit enter to get the latest scans:"
