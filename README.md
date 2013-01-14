@@ -23,11 +23,12 @@ As previously said, you'll need openVAS up and running before this script will w
 ## Find the html-id from omp.
 
 Running the following command will give you the various different output formats supported by omp:
+
 `omp -F`
 
 This should give you something like the following:
 
-`5ceff8ba-1f62-11e1-ab9f-406186ea4fc5  CPE
+5ceff8ba-1f62-11e1-ab9f-406186ea4fc5  CPE
 6c248850-1f62-11e1-b082-406186ea4fc5  HTML
 77bd6c4a-1f62-11e1-abf0-406186ea4fc5  ITG
 a684c02c-b531-11e1-bdc2-406186ea4fc5  LaTeX
@@ -39,7 +40,8 @@ a994b278-1f62-11e1-96ac-406186ea4fc5  XML`
 The script requires the HTML id (the many digits to the left of 'HTML' above) to
 be set in the script.
 
-Line 66 is where the variable currently resides, @html_id.
+Line 66 is where this currently resides. Shove the id gathered into the variable
+@html_id.
 
 ## Set up the arrays of network segments and targets.
 
