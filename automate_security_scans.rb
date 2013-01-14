@@ -64,8 +64,9 @@ class Automate
     @output_html_name = Array.new
     @reports_list = Array.new
     @user_date = ""
-    # id for HTML output - this will vary between installations. In future release automatically picked up.
-    @html_id = "b993b6f5-f9fb-4e6e-9c94-dd46c00e058d"
+    # id for HTML output
+    omp_formats = `omp -F`.split("\n").collect! {|n| n.to_s}
+    @html_id = omp_formats[1].split.first
 
     # Get directory for this script
     @current_dir = Dir.pwd.strip
