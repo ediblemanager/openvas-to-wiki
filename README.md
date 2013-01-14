@@ -28,7 +28,7 @@ Running the following command will give you the various different output formats
 
 This should give you something like the following:
 
-5ceff8ba-1f62-11e1-ab9f-406186ea4fc5  CPE
+`5ceff8ba-1f62-11e1-ab9f-406186ea4fc5  CPE
 6c248850-1f62-11e1-b082-406186ea4fc5  HTML
 77bd6c4a-1f62-11e1-abf0-406186ea4fc5  ITG
 a684c02c-b531-11e1-bdc2-406186ea4fc5  LaTeX
@@ -57,7 +57,7 @@ For now, set these arrays up and run the script.
 
 In order to use the script, make sure that openVAS is set up and running (see "Notes" section above for link to openVAS package installation guide), and that you have the required ruby version and gems, as well as html2wiki (with the mediawiki plugin).
 
-Once these are installed and working, you'll need to make the script "automate_security_scans" executable and then run it with the following: ./automate_security_scanss openvas .
+Once these are installed and working, you'll need to make the script "automate_security_scans" executable and then run it with the following: ./automate_security_scans openvas .
 
 This will then bring a prompt with the date for the scans to be processed. Enter the date, or hit enter to collect the last scans (before this, you'll need to set the last scan day in the script).
 
