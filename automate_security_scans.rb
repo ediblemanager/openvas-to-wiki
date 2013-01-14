@@ -18,8 +18,6 @@ class Automate
   require 'chronic'
   require 'open3'
   require 'fileutils'
-  require 'active_support'
-  require 'active_record'
   include FileUtils
 
   def initialize
