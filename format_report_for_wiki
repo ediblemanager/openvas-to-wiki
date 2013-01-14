@@ -25,13 +25,16 @@
 directory=$1
 # and the current directory
 current_dir=$2
+# grab the end location from params
+date_location=$3
+# Final filename
+wiki_name=$4
 # grab the date
 date_run=`date +%d_%m_%Y`
 year=`date +%Y`
 month=`date +%B`
 # create the files
 touch /tmp/$date_run".html"
-# touch /tmp/$date_run".wiki"
 echo -e "\n"
 for files in `find $directory -maxdepth 2 -mindepth 1 -type f`
 do
@@ -74,5 +77,4 @@ html2wiki --strip-tags --dialect MediaWiki --no-wrap-in-html --no-escape-entitie
 echo "Correcting indentation structure..."
 sed -i 's/=Results per Host=/==Results per Host==/g' /tmp/$date_run".wiki"
 echo "Done."
-mv /tmp/$date_run".wiki" $current_dir"/processed_files/$year/$month/$date_run".wiki"
 rm /tmp/$date_run".html"
