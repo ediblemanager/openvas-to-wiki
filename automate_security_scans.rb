@@ -201,14 +201,14 @@ class Automate
 
       puts "  "
       puts "/**************** Processing to MediaWiki format - Target array 1 ****************/"
-      puts `./format_report_for_wiki target_array_1/#{@date_location} #{@current_dir}`
-      FileUtils.mv "/tmp/#{today}_#{month}_#{year}.wiki" "#{@current_dir}/processed_files/target_array_1/#{@date_location}/#{@wiki_name}.wiki"
+      puts `./format_report_for_wiki target_array_1/#{@date_location} #{@current_dir} #{@date_location} #{@final_date_location}`
+      FileUtils.mv "/tmp/#{today}_#{month}_#{year}.wiki", "#{@current_dir}/processed_files/target_array_1/#{@date_location}/#{@wiki_name}.wiki"
 
       puts "  "
       puts "/**************** Processing to MediaWiki format - Target array 2 ****************/"
-      puts `./format_report_for_wiki target_array_2/#{@date_location} #{@current_dir}`
+      puts `./format_report_for_wiki target_array_2/#{@date_location} #{@current_dir} #{@date_location} #{@final_date_location}`
 
-      FileUtils.mv "/tmp/#{today}_#{month}_#{year}.wiki" "#{@current_dir}/processed_files/target_array_2/#{@date_location}/#{@wiki_name}.wiki"
+      FileUtils.mv "/tmp/#{today}_#{month}_#{year}.wiki", "#{@current_dir}/processed_files/target_array_2/#{@date_location}/#{@wiki_name}.wiki"
       `find  #{@current_dir}/processed_files/target_array_2/#{@date_location} -maxdepth 1 -type f -name "*.wiki" -exec sed -i '/if IE 6/d' {} \\;`
       `find  #{@current_dir}/processed_files/target_array_1/#{@date_location} -maxdepth 1 -type f -name "*.wiki" -exec sed -i '/if IE 6/d' {} \\;`
       # Update the usable nvt's (scan algorithms)
@@ -257,7 +257,7 @@ class Automate
     FileUtils.mkdir_p "#{kismet_folder}html_files/#{year}/#{month_number}/#{day}/xml_file"
     # Move the xml file to the html_files/month/day/xml_file directory.
     puts "Move #{@kismet_file_name} to #{kismet_folder}html_files/#{year}/#{month_number}/#{day}/xml_file/Kismet_#{day}_#{month_number}_#{year}.netxml"
-    FileUtils.mv "#{@kismet_file_name}" "#{kismet_folder}html_files/#{year}/#{month_number}/#{day}/xml_file/Kismet_#{day}_#{month_number}_#{year}.netxml"
+    FileUtils.mv "#{@kismet_file_name}", "#{kismet_folder}html_files/#{year}/#{month_number}/#{day}/xml_file/Kismet_#{day}_#{month_number}_#{year}.netxml"
     # Update kismet xml output file name
     @kismet_file_name = "#{kismet_folder}html_files/#{year}/#{month_number}/#{day}/xml_file/Kismet_#{day}_#{month_number}_#{year}.netxml"
     # Get rid of other Kismet output files - don't need them (only XML file is processed).
@@ -273,7 +273,7 @@ class Automate
     # Get rid of unnecessary log files
     # Run the wiki processing script on the kismet file.
     # Move the html file ready for processing by the HTML2Wiki script.
-    FileUtils.mv "#{kismet_folder}html_files/#{year}/#{month_number}/#{day}/xml_file/Kismet_#{day}_#{month_number}_#{year}.netxml.html" "#{kismet_folder}html_files/#{year}/#{month_number}/#{day}/main_html_file/Kismet_#{day}_#{month_number}_#{year}.netxml.html"
+    FileUtils.mv "#{kismet_folder}html_files/#{year}/#{month_number}/#{day}/xml_file/Kismet_#{day}_#{month_number}_#{year}.netxml.html", "#{kismet_folder}html_files/#{year}/#{month_number}/#{day}/main_html_file/Kismet_#{day}_#{month_number}_#{year}.netxml.html"
     # Remove the unecessary clients/info html files, grab html file name for processing.
     FileUtils.rm "#{kismet_folder}html_files/#{year}/#{month_number}/#{day}/xml_file/Kismet_#{day}_#{month_number}_#{year}.netxml-*"
     @kismet_html_file_name = "#{kismet_folder}html_files/#{year}/#{month_number}/#{day}/main_html_file/Kismet_#{day}_#{month_number}_#{year}.netxml.html"
@@ -283,7 +283,7 @@ class Automate
     puts "Kismet Processing script: #{wiki_script}"
     system(wiki_script)
     FileUtils.mkdir_p "#{kismet_folder}wiki_files/#{year}/#{month_number}/"
-    FileUtils.mv "#{kismet_folder}wiki_files/#{day}_#{month_number}_#{year}.wiki #{kismet_folder}wiki_files/#{year}/#{month_number}/#{day}_#{month_number}_#{year}.wiki"
+    FileUtils.mv "#{kismet_folder}wiki_files/#{day}_#{month_number}_#{year}.wiki", "#{kismet_folder}wiki_files/#{year}/#{month_number}/#{day}_#{month_number}_#{year}.wiki"
   end
 end
 
