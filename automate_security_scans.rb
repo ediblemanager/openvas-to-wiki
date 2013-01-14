@@ -201,12 +201,12 @@ class Automate
 
       puts "  "
       puts "/**************** Processing to MediaWiki format - Target array 1 ****************/"
-      puts `./format_report_for_wiki target_array_1/#{@date_location} #{@current_dir} #{@date_location} #{@final_date_location}`
+      puts `./format_report_for_wiki target_array_1/#{@date_location} #{@current_dir} #{@date_location}`
       FileUtils.mv "/tmp/#{today}_#{month}_#{year}.wiki", "#{@current_dir}/processed_files/target_array_1/#{@date_location}/#{@wiki_name}.wiki"
 
       puts "  "
       puts "/**************** Processing to MediaWiki format - Target array 2 ****************/"
-      puts `./format_report_for_wiki target_array_2/#{@date_location} #{@current_dir} #{@date_location} #{@final_date_location}`
+      puts `./format_report_for_wiki target_array_2/#{@date_location} #{@current_dir} #{@date_location}`
 
       FileUtils.mv "/tmp/#{today}_#{month}_#{year}.wiki", "#{@current_dir}/processed_files/target_array_2/#{@date_location}/#{@wiki_name}.wiki"
       `find  #{@current_dir}/processed_files/target_array_2/#{@date_location} -maxdepth 1 -type f -name "*.wiki" -exec sed -i '/if IE 6/d' {} \\;`
