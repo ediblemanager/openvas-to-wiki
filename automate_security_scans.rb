@@ -18,8 +18,6 @@ class Automate
   require 'chronic'
   require 'open3'
   require 'fileutils'
-  gem 'activesupport'
-  gem 'activerecord'
   require 'active_support'
   require 'active_record'
   include FileUtils
@@ -110,7 +108,7 @@ class Automate
     @target_ids.each do |target|
       # Find the reports for each target
       reports = `omp -G #{target}`.split("\n").collect! {|n| n.to_s}
-      # Get rid fo the first element - it contains the target details (not a report)
+      # Get rid of the first element - it contains the target details (not a report)
       @name_of_target = reports.shift.to_s.split
       # Give the user some output - target details
       puts @name_of_target.inspect
