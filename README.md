@@ -28,13 +28,20 @@ Running the following command will give you the various different output formats
 
 This should give you something like the following:
 
-`5ceff8ba-1f62-11e1-ab9f-406186ea4fc5  CPE
-6c248850-1f62-11e1-b082-406186ea4fc5  HTML
-77bd6c4a-1f62-11e1-abf0-406186ea4fc5  ITG
-a684c02c-b531-11e1-bdc2-406186ea4fc5  LaTeX
-9ca6fe72-1f62-11e1-9e7c-406186ea4fc5  NBE
-c402cc3e-b531-11e1-9163-406186ea4fc5  PDF
-a3810a62-1f62-11e1-9219-406186ea4fc5  TXT
+`5ceff8ba-1f62-11e1-ab9f-406186ea4fc5  CPE  
+
+6c248850-1f62-11e1-b082-406186ea4fc5  HTML  
+
+77bd6c4a-1f62-11e1-abf0-406186ea4fc5  ITG  
+
+a684c02c-b531-11e1-bdc2-406186ea4fc5  LaTeX  
+
+9ca6fe72-1f62-11e1-9e7c-406186ea4fc5  NBE  
+
+c402cc3e-b531-11e1-9163-406186ea4fc5  PDF  
+
+a3810a62-1f62-11e1-9219-406186ea4fc5  TXT  
+
 a994b278-1f62-11e1-96ac-406186ea4fc5  XML`
 
 The script requires the HTML id (the many digits to the left of 'HTML' above) to
