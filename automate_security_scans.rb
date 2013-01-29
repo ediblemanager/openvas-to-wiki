@@ -33,6 +33,7 @@ class Automate
       give_date_selection
       get_individual_scans
       return_scan_results
+      sync_nvt
     elsif ARGV.include?("kismet")
       run_kismet
       get_kismet_results
