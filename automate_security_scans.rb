@@ -24,6 +24,10 @@ class Automate
   def initialize
     ARGV.map! &:downcase
     if ARGV.include?("openvas")
+      check_for_target_config
+      if !@skip_config
+        setup_target_config
+      end
       get_openvas_data
       get_user_date
       get_targets_and_names
@@ -36,23 +40,85 @@ class Automate
     end
   end
 
-  def get_user_date
-    puts "Scans are run on <insert day>. Please enter a date you want to retrieve scans for (dd/mm/yyyy), or hit enter to get the latest scans:"
-    @user_date = STDIN.gets.chomp.split("/")
-    if @user_date.length > 1
-      @user_day = @user_date[0].to_i
-      @user_month = @user_date[1].to_i
-      @user_year = @user_date[2].to_i
-      # Set up the date params for grabbing the scans from other time periods
-      @other_scan_day = Chronic.parse('next Monday', :now => Time.parse("#{@user_year}-#{@user_month}-#{@user_day}")).strftime("%d")
-      @other_scan_month = Chronic.parse('next Monday', :now => Time.parse("#{@user_year}-#{@user_month}-#{@user_day}")).strftime("%m")
-      @other_scan_year = Chronic.parse('next Monday', :now => Time.parse("#{@user_year}-#{@user_month}-#{@user_day}")).strftime("%Y")
-      puts "  "
-      puts "Scan date: #{@user_day}/#{@user_month}/#{@user_year}"
-    else
-      puts "  "
-      puts "Scan date: #{@day}/#{@month_number}/#{@year}"
+  def check_for_target_config
+    # In here, we'll need to see if the file "network_segments.txt" exists, and read in the contents to create the network segment arrays.
+    if !File.exists?("config/")
+      FileUtils.mkdir_p "config"
     end
+    if File.exists?("config/network_segments.txt")
+      @overall_segments = []
+      CSV.foreach("config/network_segments.txt") do |csv|
+        @overall_segments << csv
+      end
+      @skip_config = true
+    else
+      @skip_config = false
+    end
+  end
+
+  def setup_target_config
+    puts "Please enter number of network segments. If you have only one (or just want all results), hit enter:"
+    @network_segments = STDIN.gets.chomp
+    if !@network_segments.empty?
+      # We have more than one segment. We need to initialise the correct number of arrays and gather in the names for each segment.
+      @overall_segment_data = []
+      @network_segments.to_i.times do |segment|
+        puts " "
+        puts "*************************** "
+        puts "Please enter a name for this network segment (if none given, name will be 'network_segment_#{segment + 1}'):"
+        name = STDIN.gets.chomp
+        if name.nil?
+          name = (segment +1)
+        end
+        name.downcase!
+        name.gsub!(' ', '_')
+        puts " "
+        puts "*************************** "
+        puts "Please enter the scan target names as they appear when running omp -G for network segment #{name}, with each name separated by a space:"
+        @targets = []
+        # Grab user input for target names, push the name of segment into the
+        # first element.
+        @targets = STDIN.gets.chomp.split(' ').unshift(name)
+        # Flatten to string
+        @targets.flatten!
+        # Add string to array.
+        @overall_segment_data << @targets
+      end
+    else
+      @one_segment = true
+      @single_segment_data = []
+      # We should store that there is one segment, but not bother initialising arrays
+      puts " "
+      puts "*************************** "
+      puts "Please enter a name for this network segment (if none given, name will be 'network_segment_1'):"
+      name = ""
+      name = STDIN.gets.chomp
+      if name.length == 0
+        puts "NAME IS EMPTY"
+        name = "network_segment_1"
+      else
+        puts "Name is: #{name}"
+        name.downcase!
+        name.gsub!(' ', '_')
+      end
+
+      puts " "
+      puts "*************************** "
+      puts "Please enter the scan target names as they appear when running omp -G, with each name separated by a space:"
+      @single_segment_data << STDIN.gets.chomp.split(' ').unshift(name)
+    end
+    # Create a new file and write to it
+    CSV.open("#{Dir.pwd}/config/network_segments.txt", "w") do |csv|
+      if @one_segment
+        csv << @single_segment_data.flatten
+      else
+        @overall_segment_data.each do |segment_data|
+            csv << segment_data
+        end
+      end
+    end
+    check_for_target_config
+  end
   end
 
   def get_openvas_data
