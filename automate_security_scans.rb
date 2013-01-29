@@ -150,10 +150,6 @@ class Automate
     @month_number = Chronic.parse("last Saturday").strftime("%m").to_i
     @day = Chronic.parse("last Saturday").strftime("%d").to_i
     @scan_date = "#{@day}_#{@month}_#{@year}"
-
-    # Create an array/s for the targets specified in OMP - this must match the output from omp
-    @target_array_1 = []
-    @target_array_2 = []
   end
 
   def get_targets_and_names
@@ -165,7 +161,9 @@ class Automate
       # Now that we have the target's details, grab the id
       @target_ids << target_details.first
       # name formatted for html file name use.
-      @output_html_name << target_details.last.to_s# + (split_element[4] ? "-" + split_element[4].to_s : "")
+      @output_html_name << target_details.last.to_s
+    end
+  end
 
   def give_date_selection
     # In here, we'll give the user a numerical choice to select one from the
