@@ -33,7 +33,6 @@ class Automate
       give_date_selection
       get_individual_scans
       return_scan_results
-      process_scan_results
     elsif ARGV.include?("kismet")
       run_kismet
       get_kismet_results
@@ -292,66 +291,69 @@ class Automate
 
   def return_scan_results
     i = 0
-    @gathered_reports.each_pair do |key, value|
-      # Set up network location for html file output
-      if @target_array_1.include?(key)
-        @network_location = "target_array_1"
-      end
-      if @target_array_2.include?(key)
-        @network_location = "target_array_2"
-      end
-      @output_file_path = "#{@current_dir}/#{@network_location}/#{@date_location}"
-
-      # Create vars to hold paths for the removal of bad characters.
-      @remove_from_target_array_1 = "#{@current_dir}/target_array_1/#{@date_location}"
-      @remove_from_target_array_2 = "#{@current_dir}/target_array_2/#{@date_location}"
-
-      # If the base output file path exists
-      if !File.exists?(@output_file_path) #&& File.directory?(@output_file_path)
-        FileUtils.mkdir_p "#{@output_file_path}"
-      end
-
-      if !File.exists?("#{@current_dir}/processed_files/#{@network_location}/#{@date_location}") #&& File.directory?(@output_file_path)
-        FileUtils.mkdir_p "#{@current_dir}/processed_files/#{@network_location}/#{@date_location}"
-      end
-      # This is where we are grabbing the scan results
-      `omp --get-report #{value} --format #{@html_id} > #{@output_file_path}/#{key}_#{@scan_date}.html`
-      i = i+1
-		end
     puts " "
     puts "Running sed commands..."
-    #puts "find #{@remove_from_target_array_1} -type f -exec sed -i ':a;N;$!ba;s@'$(echo \342\206\265)'\\n@@g' {} \\;"
-    #puts "#{@remove_from_target_array_1} sed -i ':a;N;$!ba;s@'$(echo \342\206\265)'\\n@@g'"
-    #`find #{@remove_from_target_array_1} -type f -exec sed -i ':a;N;$!ba;s@'$(echo "\342\206\265")'\\n@@g' {} \\;`
-    #`sed -i ':a;N;$!ba;s@'$(echo "\342\206\265")'\\n@@g' *.html`
-    Dir.chdir "#{@remove_from_target_array_1}"
-    `sed -i ':a;N;$!ba;s@↵\\n@@g' *.html`
-    Dir.chdir "#{@remove_from_target_array_2}"
-    `sed -i ':a;N;$!ba;s@↵\\n@@g' *.html`
-    Dir.chdir "#{@current_dir}"
+    @overall_segments.each do |segment|
+      @gathered_reports.each_pair do |key, value|
+        # Set up network location for html file output
+        if segment.include?(key)
+          network_segment = segment.first
+          @html_file_path = "#{@current_dir}/html_files/#{network_segment}/#{@date_location}"
+          @wiki_file_path = "#{@current_dir}/processed_files/#{network_segment}/#{@date_location}"
+
+          # Create the HTML file storage structure.
+          if !File.exists?(@html_file_path)
+            FileUtils.mkdir_p "#{@html_file_path}"
+          end
+
+          # Create the wiki file storage structure.
+          if !File.exists?(@wiki_file_path)
+            FileUtils.mkdir_p "#{@wiki_file_path}"
+          end
+
+          # Get HTML formatted output files from openVAS.
+          `omp --get-report #{value} --format #{@html_id} > #{@html_file_path}/#{key}_#{@scan_date}.html`
+          i = i + 1
+          #puts "find #{@remove_from_target_array_1} -type f -exec sed -i ':a;N;$!ba;s@'$(echo \342\206\265)'\\n@@g' {} \\;"
+          #puts "#{@remove_from_target_array_1} sed -i ':a;N;$!ba;s@'$(echo \342\206\265)'\\n@@g'"
+          #`find #{@remove_from_target_array_1} -type f -exec sed -i ':a;N;$!ba;s@'$(echo "\342\206\265")'\\n@@g' {} \\;`
+          #`sed -i ':a;N;$!ba;s@'$(echo "\342\206\265")'\\n@@g' *.html`
+
+          #Clean up the files
+          Dir.chdir "#{@html_file_path}"
+          `sed -i ':a;N;$!ba;s@↵\\n@@g' *.html`
+          # We need to process the scan results.
+          process_scan_results(network_segment)
+          puts "Processed: #{key} (#{value})"
+        end
+      end
+    end
     puts " "
+    puts "'sed' commands completed successfully."
   end
 
-  def process_scan_results
+  def process_scan_results(network_segment)
+    # Change back the 'home' DIR for the script
+    Dir.chdir "#{@current_dir}"
+    puts " "
+
     # In here we'll run the processing script on the results, gathering wiki output.
-      today = Chronic.parse("today").strftime("%d")
-      month = Chronic.parse("today").strftime("%m")
-      year =  Chronic.parse("today").strftime("%Y")
+    today = Chronic.parse("today").strftime("%d")
+    month = Chronic.parse("today").strftime("%m")
+    year =  Chronic.parse("today").strftime("%Y")
 
-      puts "  "
-      puts "/**************** Processing to MediaWiki format - Target array 1 ****************/"
-      puts `./format_report_for_wiki target_array_1/#{@date_location} #{@current_dir} #{@date_location}`
-      FileUtils.mv "/tmp/#{today}_#{month}_#{year}.wiki", "#{@current_dir}/processed_files/target_array_1/#{@date_location}/#{@wiki_name}.wiki"
+    `./format_report_for_wiki "html_files/#{network_segment}/#{@date_location}" #{@current_dir} #{@date_location}`
+    FileUtils.mv "/tmp/#{today}_#{month}_#{year}.wiki", "#{@current_dir}/processed_files/#{network_segment}/#{@date_location}/#{@wiki_name}.wiki"
 
-      puts "  "
-      puts "/**************** Processing to MediaWiki format - Target array 2 ****************/"
-      puts `./format_report_for_wiki target_array_2/#{@date_location} #{@current_dir} #{@date_location}`
+    # Find all the wiki files and remove lines concerning IE 6.
+    `find  #{@current_dir}/processed_files/#{network_segment}/#{@date_location} -maxdepth 1 -type f -name "*.wiki" -exec sed -i '/if IE 6/d' {} \\;`
+  end
 
-      FileUtils.mv "/tmp/#{today}_#{month}_#{year}.wiki", "#{@current_dir}/processed_files/target_array_2/#{@date_location}/#{@wiki_name}.wiki"
-      `find  #{@current_dir}/processed_files/target_array_2/#{@date_location} -maxdepth 1 -type f -name "*.wiki" -exec sed -i '/if IE 6/d' {} \\;`
-      `find  #{@current_dir}/processed_files/target_array_1/#{@date_location} -maxdepth 1 -type f -name "*.wiki" -exec sed -i '/if IE 6/d' {} \\;`
-      # Update the usable nvt's (scan algorithms)
-      `sudo openvas-nvt-sync --wget`
+  def sync_nvt
+    # Update the usable nvt's (scan algorithms)
+    puts " "
+    puts "Update NVT feed:"
+    `sudo openvas-nvt-sync --wget`
   end
 
   def run_kismet
