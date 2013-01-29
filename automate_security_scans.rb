@@ -18,40 +18,118 @@ class Automate
   require 'chronic'
   require 'open3'
   require 'fileutils'
+  require 'csv'
   include FileUtils
 
   def initialize
     ARGV.map! &:downcase
     if ARGV.include?("openvas")
+      check_for_target_config
+      if !@skip_config
+        setup_target_config
+      end
       get_openvas_data
-      get_user_date
       get_targets_and_names
+      give_date_selection
       get_individual_scans
       return_scan_results
-      process_scan_results
+      sync_nvt
     elsif ARGV.include?("kismet")
       run_kismet
       get_kismet_results
     end
   end
 
-  def get_user_date
-    puts "Scans are run on <insert day>. Please enter a date you want to retrieve scans for (dd/mm/yyyy), or hit enter to get the latest scans:"
-    @user_date = STDIN.gets.chomp.split("/")
-    if @user_date.length > 1
-      @user_day = @user_date[0].to_i
-      @user_month = @user_date[1].to_i
-      @user_year = @user_date[2].to_i
-      # Set up the date params for grabbing the scans from other time periods
-      @other_scan_day = Chronic.parse('next Monday', :now => Time.parse("#{@user_year}-#{@user_month}-#{@user_day}")).strftime("%d")
-      @other_scan_month = Chronic.parse('next Monday', :now => Time.parse("#{@user_year}-#{@user_month}-#{@user_day}")).strftime("%m")
-      @other_scan_year = Chronic.parse('next Monday', :now => Time.parse("#{@user_year}-#{@user_month}-#{@user_day}")).strftime("%Y")
-      puts "  "
-      puts "Scan date: #{@user_day}/#{@user_month}/#{@user_year}"
-    else
-      puts "  "
-      puts "Scan date: #{@day}/#{@month_number}/#{@year}"
+  def check_for_target_config
+    # In here, we'll need to see if the file "network_segments.txt" exists, and read in the contents to create the network segment arrays.
+    if !File.exists?("config/")
+      FileUtils.mkdir_p "config"
     end
+    if File.exists?("config/network_segments.txt")
+      @overall_segments = []
+      CSV.foreach("config/network_segments.txt") do |csv|
+        @overall_segments << csv
+      end
+      @skip_config = true
+    else
+      @skip_config = false
+    end
+  end
+
+  def setup_target_config
+    puts "Please enter number of network segments. If you have only one (or just want all results), hit enter:"
+    @network_segments = STDIN.gets.chomp
+    if !@network_segments.empty?
+      # We have more than one segment. We need to initialise the correct number of arrays and gather in the names for each segment.
+      @overall_segment_data = []
+      @network_segments.to_i.times do |segment|
+        puts " "
+        puts "*************************** "
+        puts "Please enter a name for this network segment (if none given, name will be 'network_segment_#{segment + 1}'):"
+        name = STDIN.gets.chomp
+        if name.nil?
+          name = (segment +1)
+        end
+        name.downcase!
+        name.gsub!(' ', '_')
+        puts " "
+        puts "*************************** "
+        puts "Please enter the scan target names as they appear when running omp -G for network segment #{name}, with each name separated by a space:"
+        @targets = []
+        # Grab user input for target names, push the name of segment into the
+        # first element.
+        @targets = STDIN.gets.chomp.split(' ').unshift(name)
+        # Flatten to string
+        @targets.flatten!
+        # Add string to array.
+        @overall_segment_data << @targets
+      end
+    else
+      @one_segment = true
+      @single_segment_data = []
+      # We should store that there is one segment, but not bother initialising arrays
+      puts " "
+      puts "*************************** "
+      puts "Please enter a name for this network segment (if none given, name will be 'network_segment_1'):"
+      name = ""
+      name = STDIN.gets.chomp
+      if name.length == 0
+        puts "NAME IS EMPTY"
+        name = "network_segment_1"
+      else
+        puts "Name is: #{name}"
+        name.downcase!
+        name.gsub!(' ', '_')
+      end
+
+      puts " "
+      puts "*************************** "
+      puts "Please enter the scan target names as they appear when running omp -G, with each name separated by a space:"
+      @single_segment_data << STDIN.gets.chomp.split(' ').unshift(name)
+    end
+    # Create a new file and write to it
+    CSV.open("#{Dir.pwd}/config/network_segments.txt", "w") do |csv|
+      if @one_segment
+        csv << @single_segment_data.flatten
+      else
+        @overall_segment_data.each do |segment_data|
+            csv << segment_data
+        end
+      end
+    end
+    check_for_target_config
+  end
+
+  def get_user_date(date_entered)
+    @user_day = date_entered[2].to_i
+    @user_month = date_entered[1].to_i
+    @user_year = date_entered[0].to_i
+
+    # This needs to be examined - this should be stored as a config option!
+    # Set up the date params for grabbing the scans from other time periods
+    @other_scan_day = Chronic.parse('next Monday', :now => Time.parse("#{@user_year}-#{@user_month}-#{@user_day}")).strftime("%d")
+    @other_scan_month = Chronic.parse('next Monday', :now => Time.parse("#{@user_year}-#{@user_month}-#{@user_day}")).strftime("%m")
+    @other_scan_year = Chronic.parse('next Monday', :now => Time.parse("#{@user_year}-#{@user_month}-#{@user_day}")).strftime("%Y")
   end
 
   def get_openvas_data
@@ -73,10 +151,6 @@ class Automate
     @month_number = Chronic.parse("last Saturday").strftime("%m").to_i
     @day = Chronic.parse("last Saturday").strftime("%d").to_i
     @scan_date = "#{@day}_#{@month}_#{@year}"
-
-    # Create an array/s for the targets specified in OMP - this must match the output from omp
-    @target_array_1 = []
-    @target_array_2 = []
   end
 
   def get_targets_and_names
@@ -88,7 +162,72 @@ class Automate
       # Now that we have the target's details, grab the id
       @target_ids << target_details.first
       # name formatted for html file name use.
-      @output_html_name << target_details.last.to_s# + (split_element[4] ? "-" + split_element[4].to_s : "")
+      @output_html_name << target_details.last.to_s
+    end
+  end
+
+  def give_date_selection
+    # In here, we'll give the user a numerical choice to select one from the
+    # last five dates, or input a date of their own.
+    system("clear")
+    puts "/**************** Scan Dates ****************/"
+    @overall_dates = []
+    # We need to find the latest date from *all* the targets.
+    @target_ids.each do |target|
+      report = `omp -G #{target}`.split("\n").collect! {|n| n.to_s}
+      # Get rid of the first element - it contains the target details (not a report)
+      @name_of_target = report.shift.to_s.split
+      # Iterate through the individual reports (for a specific target)
+      report.each do |individual_reports|
+        # Get each report to analyse against user date.
+        selected_report = individual_reports.to_s.split
+        # The report dates are formatted like this: 2012-12-22T09:00:13Z. We need to parse this!
+        report_date = selected_report[6].split("T").first.split("-")
+        # We now have the date (yyyy-mm-dd) to use.
+        report_day = report_date[2]
+        report_month = report_date[1]
+        report_year = report_date[0]
+        if !@overall_dates.include?("#{report_year}/#{report_month}/#{report_day}")
+          # Only gather dates if they are Saturdays
+          if Time.parse("#{report_year}/#{report_month}/#{report_day}").saturday?
+            @overall_dates << "#{report_year}/#{report_month}/#{report_day}"
+          end
+        end
+      end
+    end
+    @overall_dates.sort!
+    @overall_dates.uniq!
+    @overall_dates.reverse!
+
+    @dates_list = @overall_dates.take 5
+    # We now give the user the choice of the last 5 scan dates.
+    @dates_list.each_with_index do |date, index|
+      correctly_formatted_date = date.split("/").reverse
+      puts "#{index +1}. #{correctly_formatted_date[0]}/#{correctly_formatted_date[1]}/#{correctly_formatted_date[2]}"
+    end
+    puts "NOTE: Some targets may not have any results for a given date, and as such, will not show any results."
+    puts " "
+    puts "Enter number for date, 'D' to enter a date, or 'A' to see all dates:"
+    date = STDIN.gets.chomp.downcase
+    if date == "d"
+      puts "Please enter date in the form dd/mm/yyyy:"
+      entered_date = STDIN.gets.chomp.split("/")
+      get_user_date(entered_date)
+    elsif date == "a"
+      # View all dates!
+      system("clear")
+      @overall_dates.each_with_index do |date,index|
+        puts "#{index+1}. #{date}"
+      end
+      puts "Please enter the number of a date from the list:"
+      entered_date = STDIN.gets.chomp
+      system("clear")
+      puts "Date selected: #{@overall_dates[entered_date.to_i]}"
+      puts " "
+      get_user_date(@overall_dates[entered_date.to_i].split("/"))
+    else
+      # We have a selected date.
+      get_user_date(@dates_list[date.to_i-1].split("/"))
     end
   end
 
@@ -151,66 +290,69 @@ class Automate
 
   def return_scan_results
     i = 0
-    @gathered_reports.each_pair do |key, value|
-      # Set up network location for html file output
-      if @target_array_1.include?(key)
-        @network_location = "target_array_1"
-      end
-      if @target_array_2.include?(key)
-        @network_location = "target_array_2"
-      end
-      @output_file_path = "#{@current_dir}/#{@network_location}/#{@date_location}"
-
-      # Create vars to hold paths for the removal of bad characters.
-      @remove_from_target_array_1 = "#{@current_dir}/target_array_1/#{@date_location}"
-      @remove_from_target_array_2 = "#{@current_dir}/target_array_2/#{@date_location}"
-
-      # If the base output file path exists
-      if !File.exists?(@output_file_path) #&& File.directory?(@output_file_path)
-        FileUtils.mkdir_p "#{@output_file_path}"
-      end
-
-      if !File.exists?("#{@current_dir}/processed_files/#{@network_location}/#{@date_location}") #&& File.directory?(@output_file_path)
-        FileUtils.mkdir_p "#{@current_dir}/processed_files/#{@network_location}/#{@date_location}"
-      end
-      # This is where we are grabbing the scan results
-      `omp --get-report #{value} --format #{@html_id} > #{@output_file_path}/#{key}_#{@scan_date}.html`
-      i = i+1
-		end
     puts " "
     puts "Running sed commands..."
-    #puts "find #{@remove_from_target_array_1} -type f -exec sed -i ':a;N;$!ba;s@'$(echo \342\206\265)'\\n@@g' {} \\;"
-    #puts "#{@remove_from_target_array_1} sed -i ':a;N;$!ba;s@'$(echo \342\206\265)'\\n@@g'"
-    #`find #{@remove_from_target_array_1} -type f -exec sed -i ':a;N;$!ba;s@'$(echo "\342\206\265")'\\n@@g' {} \\;`
-    #`sed -i ':a;N;$!ba;s@'$(echo "\342\206\265")'\\n@@g' *.html`
-    Dir.chdir "#{@remove_from_target_array_1}"
-    `sed -i ':a;N;$!ba;s@↵\\n@@g' *.html`
-    Dir.chdir "#{@remove_from_target_array_2}"
-    `sed -i ':a;N;$!ba;s@↵\\n@@g' *.html`
-    Dir.chdir "#{@current_dir}"
+    @overall_segments.each do |segment|
+      @gathered_reports.each_pair do |key, value|
+        # Set up network location for html file output
+        if segment.include?(key)
+          network_segment = segment.first
+          @html_file_path = "#{@current_dir}/html_files/#{network_segment}/#{@date_location}"
+          @wiki_file_path = "#{@current_dir}/processed_files/#{network_segment}/#{@date_location}"
+
+          # Create the HTML file storage structure.
+          if !File.exists?(@html_file_path)
+            FileUtils.mkdir_p "#{@html_file_path}"
+          end
+
+          # Create the wiki file storage structure.
+          if !File.exists?(@wiki_file_path)
+            FileUtils.mkdir_p "#{@wiki_file_path}"
+          end
+
+          # Get HTML formatted output files from openVAS.
+          `omp --get-report #{value} --format #{@html_id} > #{@html_file_path}/#{key}_#{@scan_date}.html`
+          i = i + 1
+          #puts "find #{@remove_from_target_array_1} -type f -exec sed -i ':a;N;$!ba;s@'$(echo \342\206\265)'\\n@@g' {} \\;"
+          #puts "#{@remove_from_target_array_1} sed -i ':a;N;$!ba;s@'$(echo \342\206\265)'\\n@@g'"
+          #`find #{@remove_from_target_array_1} -type f -exec sed -i ':a;N;$!ba;s@'$(echo "\342\206\265")'\\n@@g' {} \\;`
+          #`sed -i ':a;N;$!ba;s@'$(echo "\342\206\265")'\\n@@g' *.html`
+
+          #Clean up the files
+          Dir.chdir "#{@html_file_path}"
+          `sed -i ':a;N;$!ba;s@↵\\n@@g' *.html`
+          # We need to process the scan results.
+          process_scan_results(network_segment)
+          puts "Processed: #{key} (#{value})"
+        end
+      end
+    end
     puts " "
+    puts "'sed' commands completed successfully."
   end
 
-  def process_scan_results
+  def process_scan_results(network_segment)
+    # Change back the 'home' DIR for the script
+    Dir.chdir "#{@current_dir}"
+    puts " "
+
     # In here we'll run the processing script on the results, gathering wiki output.
-      today = Chronic.parse("today").strftime("%d")
-      month = Chronic.parse("today").strftime("%m")
-      year =  Chronic.parse("today").strftime("%Y")
+    today = Chronic.parse("today").strftime("%d")
+    month = Chronic.parse("today").strftime("%m")
+    year =  Chronic.parse("today").strftime("%Y")
 
-      puts "  "
-      puts "/**************** Processing to MediaWiki format - Target array 1 ****************/"
-      puts `./format_report_for_wiki target_array_1/#{@date_location} #{@current_dir} #{@date_location}`
-      FileUtils.mv "/tmp/#{today}_#{month}_#{year}.wiki", "#{@current_dir}/processed_files/target_array_1/#{@date_location}/#{@wiki_name}.wiki"
+    `./format_report_for_wiki "html_files/#{network_segment}/#{@date_location}" #{@current_dir} #{@date_location}`
+    FileUtils.mv "/tmp/#{today}_#{month}_#{year}.wiki", "#{@current_dir}/processed_files/#{network_segment}/#{@date_location}/#{@wiki_name}.wiki"
 
-      puts "  "
-      puts "/**************** Processing to MediaWiki format - Target array 2 ****************/"
-      puts `./format_report_for_wiki target_array_2/#{@date_location} #{@current_dir} #{@date_location}`
+    # Find all the wiki files and remove lines concerning IE 6.
+    `find  #{@current_dir}/processed_files/#{network_segment}/#{@date_location} -maxdepth 1 -type f -name "*.wiki" -exec sed -i '/if IE 6/d' {} \\;`
+  end
 
-      FileUtils.mv "/tmp/#{today}_#{month}_#{year}.wiki", "#{@current_dir}/processed_files/target_array_2/#{@date_location}/#{@wiki_name}.wiki"
-      `find  #{@current_dir}/processed_files/target_array_2/#{@date_location} -maxdepth 1 -type f -name "*.wiki" -exec sed -i '/if IE 6/d' {} \\;`
-      `find  #{@current_dir}/processed_files/target_array_1/#{@date_location} -maxdepth 1 -type f -name "*.wiki" -exec sed -i '/if IE 6/d' {} \\;`
-      # Update the usable nvt's (scan algorithms)
-      `sudo openvas-nvt-sync --wget`
+  def sync_nvt
+    # Update the usable nvt's (scan algorithms)
+    puts " "
+    puts "Update NVT feed:"
+    `sudo openvas-nvt-sync --wget`
   end
 
   def run_kismet
