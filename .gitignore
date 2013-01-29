@@ -17,7 +17,8 @@ tmp
 _yardoc
 doc/
 
-# Local folders
+# Local files/folders
 kismet/wiki_files
 kismet/html_files
 processed_files
+network_segments.txt
