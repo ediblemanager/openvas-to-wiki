@@ -29,8 +29,8 @@ class Automate
         setup_target_config
       end
       get_openvas_data
-      get_user_date
       get_targets_and_names
+      give_date_selection
       get_individual_scans
       return_scan_results
       process_scan_results
@@ -119,6 +119,17 @@ class Automate
     end
     check_for_target_config
   end
+
+  def get_user_date(date_entered)
+    @user_day = date_entered[2].to_i
+    @user_month = date_entered[1].to_i
+    @user_year = date_entered[0].to_i
+
+    # This needs to be examined - this should be stored as a config option!
+    # Set up the date params for grabbing the scans from other time periods
+    @other_scan_day = Chronic.parse('next Monday', :now => Time.parse("#{@user_year}-#{@user_month}-#{@user_day}")).strftime("%d")
+    @other_scan_month = Chronic.parse('next Monday', :now => Time.parse("#{@user_year}-#{@user_month}-#{@user_day}")).strftime("%m")
+    @other_scan_year = Chronic.parse('next Monday', :now => Time.parse("#{@user_year}-#{@user_month}-#{@user_day}")).strftime("%Y")
   end
 
   def get_openvas_data
@@ -156,6 +167,69 @@ class Automate
       @target_ids << target_details.first
       # name formatted for html file name use.
       @output_html_name << target_details.last.to_s# + (split_element[4] ? "-" + split_element[4].to_s : "")
+
+  def give_date_selection
+    # In here, we'll give the user a numerical choice to select one from the
+    # last five dates, or input a date of their own.
+    system("clear")
+    puts "/**************** Scan Dates ****************/"
+    @overall_dates = []
+    # We need to find the latest date from *all* the targets.
+    @target_ids.each do |target|
+      report = `omp -G #{target}`.split("\n").collect! {|n| n.to_s}
+      # Get rid of the first element - it contains the target details (not a report)
+      @name_of_target = report.shift.to_s.split
+      # Iterate through the individual reports (for a specific target)
+      report.each do |individual_reports|
+        # Get each report to analyse against user date.
+        selected_report = individual_reports.to_s.split
+        # The report dates are formatted like this: 2012-12-22T09:00:13Z. We need to parse this!
+        report_date = selected_report[6].split("T").first.split("-")
+        # We now have the date (yyyy-mm-dd) to use.
+        report_day = report_date[2]
+        report_month = report_date[1]
+        report_year = report_date[0]
+        if !@overall_dates.include?("#{report_year}/#{report_month}/#{report_day}")
+          # Only gather dates if they are Saturdays
+          if Time.parse("#{report_year}/#{report_month}/#{report_day}").saturday?
+            @overall_dates << "#{report_year}/#{report_month}/#{report_day}"
+          end
+        end
+      end
+    end
+    @overall_dates.sort!
+    @overall_dates.uniq!
+    @overall_dates.reverse!
+
+    @dates_list = @overall_dates.take 5
+    # We now give the user the choice of the last 5 scan dates.
+    @dates_list.each_with_index do |date, index|
+      correctly_formatted_date = date.split("/").reverse
+      puts "#{index +1}. #{correctly_formatted_date[0]}/#{correctly_formatted_date[1]}/#{correctly_formatted_date[2]}"
+    end
+    puts "NOTE: Some targets may not have any results for a given date, and as such, will not show any results."
+    puts " "
+    puts "Enter number for date, 'D' to enter a date, or 'A' to see all dates:"
+    date = STDIN.gets.chomp.downcase
+    if date == "d"
+      puts "Please enter date in the form dd/mm/yyyy:"
+      entered_date = STDIN.gets.chomp.split("/")
+      get_user_date(entered_date)
+    elsif date == "a"
+      # View all dates!
+      system("clear")
+      @overall_dates.each_with_index do |date,index|
+        puts "#{index+1}. #{date}"
+      end
+      puts "Please enter the number of a date from the list:"
+      entered_date = STDIN.gets.chomp
+      system("clear")
+      puts "Date selected: #{@overall_dates[entered_date.to_i]}"
+      puts " "
+      get_user_date(@overall_dates[entered_date.to_i].split("/"))
+    else
+      # We have a selected date.
+      get_user_date(@dates_list[date.to_i-1].split("/"))
     end
   end
 
