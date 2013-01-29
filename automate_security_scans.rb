@@ -18,6 +18,7 @@ class Automate
   require 'chronic'
   require 'open3'
   require 'fileutils'
+  require 'csv'
   include FileUtils
 
   def initialize
