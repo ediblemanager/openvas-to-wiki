@@ -105,6 +105,25 @@ class Automate
       puts "*************************** "
       puts "Please enter the scan target names as they appear when running omp -G, with each name separated by a space:"
       @segment_data << STDIN.gets.chomp.split(' ').unshift(name)
+      puts " "
+      puts "Do you have a schedule set up in openVAS to run scans on a particular day of the week (Y/N)?"
+      week_choice = STDIN.gets.chomp.downcase
+      if week_choice == "y"
+        puts "Please select a day for running the scans, or X if the scans run on multiple days"
+        days_array = ["Monday", "Tuesday", "Wednesday", "Thursday" , "Friday", "Saturday", "Sunday"]
+        days_array.each_with_index do |day, index|
+          puts "#{index+1}. #{day}"
+        end
+        day_selection = STDIN.gets.chomp.downcase
+        if day_selection == "x"
+          puts "No specific day selected"
+        else
+          puts "#{Date::DAYNAMES[day_selection.to_i]} selected."
+          @segment_data << day_selection
+        end
+      else
+        @segment_data << "n"
+      end
     end
     write_csv(@one_segment, @segment_data)
   end
@@ -192,8 +211,17 @@ class Automate
         report_year = report_date[0]
         if !@overall_dates.include?("#{report_year}/#{report_month}/#{report_day}")
           # Only gather dates if they are Saturdays
-          if Time.parse("#{report_year}/#{report_month}/#{report_day}").saturday?
-            @overall_dates << "#{report_year}/#{report_month}/#{report_day}"
+          #puts Time.parse("#{report_year}/#{report_month}/#{report_day}").saturday?
+          @overall_segments.each do |segment|
+            if segment.last.is_a? Integer
+              # We have a day stored (openVAS scans on one specific day).
+              if Date::DAYNAMES[segment.last.to_i].to_s[0..2] == Chronic.parse("#{report_year}/#{report_month}/#{report_day}").to_s.split.first
+                @overall_dates << "#{report_year}/#{report_month}/#{report_day}"
+              end
+            else
+              # No integer for ilast element. No day of the week set.
+              @overall_dates << "#{report_year}/#{report_month}/#{report_day}"
+            end
           end
         end
       end
