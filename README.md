@@ -18,16 +18,20 @@ The script is now fully automated, with the output format automatically set to b
 
 On the first run of the script, you'll be prompted to give details about the network configuration (such as number of segments, names for the segments and targets). This data will be stored in config/network_segments.txt.
 
-Onsubsequent runs, the config data will be loaded and you'll be prompted only to select a date, after which all scans that were run on the date will be processed.
+On subsequent runs, the config data will be loaded and you'll be prompted only to select a date, after which all scans that were run on the date will be processed.
 
 As previously said, you'll need openVAS up and running before this script will work.
+In roder to check that it is, run:
+ omp -G
+
+and you should see output. If you don't, then there's probably an issue (either it isn't running, or another problem exists. Check the logs.
 
 ### Running the script
 
 In order to use the script, make sure that openVAS is set up and running (see "Notes" section above for link to openVAS package installation guide), and that you have the required ruby version and chronic, as well as html2wiki (with the mediawiki plugin).
 
 Once these are installed and working, you can run the script with the following:
-	ruby automate_security_scans openvas
+ ruby automate_security_scans openvas
 
 This will then bring a prompt with the date for the scans to be processed. Enter the date, or hit enter to collect the last scans (before this, you'll need to set the last scan day in the script).
 
