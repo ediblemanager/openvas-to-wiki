@@ -231,11 +231,13 @@ class Automate
     @overall_dates.reverse!
 
     @dates_list = @overall_dates.take 5
+    puts " "
     # We now give the user the choice of the last 5 scan dates.
     @dates_list.each_with_index do |date, index|
       correctly_formatted_date = date.split("/").reverse
       puts "#{index +1}. #{correctly_formatted_date[0]}/#{correctly_formatted_date[1]}/#{correctly_formatted_date[2]}"
     end
+    puts " "
     puts "NOTE: Some targets may not have any results for a given date, and as such, will not show any results."
     puts " "
     puts "Enter number for date, 'D' to enter a date, or 'A' to see all dates:"
@@ -382,8 +384,14 @@ class Automate
   def sync_nvt
     # Update the usable nvt's (scan algorithms)
     puts " "
-    puts "Update NVT feed:"
-    `sudo openvas-nvt-sync --wget`
+    puts "Do you want to update the NVT feed (Y/N)?"
+    nvt = STDIN.gets.chomp.downcase
+    if nvt == "y"
+      puts "Update NVT feed:"
+      `sudo openvas-nvt-sync --wget`
+    else
+      puts "Scan completed. Results can be found under 'processed_files'"
+    end
   end
 
   def run_kismet
