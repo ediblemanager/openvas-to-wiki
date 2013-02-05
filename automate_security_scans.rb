@@ -59,9 +59,9 @@ class Automate
   def setup_target_config
     puts "Please enter number of network segments. If you have only one (or just want all results), hit enter:"
     @network_segments = STDIN.gets.chomp
+    @segment_data = []
     if !@network_segments.empty?
       # We have more than one segment. We need to initialise the correct number of arrays and gather in the names for each segment.
-      @overall_segment_data = []
       @network_segments.to_i.times do |segment|
         puts " "
         puts "*************************** "
@@ -82,11 +82,10 @@ class Automate
         # Flatten to string
         @targets.flatten!
         # Add string to array.
-        @overall_segment_data << @targets
+        @segment_data << @targets
       end
     else
       @one_segment = true
-      @single_segment_data = []
       # We should store that there is one segment, but not bother initialising arrays
       puts " "
       puts "*************************** "
@@ -105,14 +104,18 @@ class Automate
       puts " "
       puts "*************************** "
       puts "Please enter the scan target names as they appear when running omp -G, with each name separated by a space:"
-      @single_segment_data << STDIN.gets.chomp.split(' ').unshift(name)
+      @segment_data << STDIN.gets.chomp.split(' ').unshift(name)
     end
+    write_csv(@one_segment, @segment_data)
+  end
+
+  def write_csv(one_segment, data)
     # Create a new file and write to it
     CSV.open("#{Dir.pwd}/config/network_segments.txt", "w") do |csv|
-      if @one_segment
-        csv << @single_segment_data.flatten
+      if one_segment
+        csv << data.flatten
       else
-        @overall_segment_data.each do |segment_data|
+        data.each do |segment_data|
             csv << segment_data
         end
       end
